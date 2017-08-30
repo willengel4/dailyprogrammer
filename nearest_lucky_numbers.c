@@ -1,3 +1,14 @@
+/* PROGRAM DESCRIPTION
+ * Uses a sieve approach to complete challenge r/dailyprogrammer challenge #329
+ * Essentially, there is an initial list up to a certain number n
+ * EG. 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+ * On the first round step size is 2, every other number is removed:
+ * 1, 3, 5, 7, 9
+ * Next round every 3 is removed
+ * 1, 3, 7, 9
+ * Next round every 7 is removed
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 
