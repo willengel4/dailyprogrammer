@@ -47,7 +47,10 @@ int removeMarked(int * base, int size)
 
 int main()
 {
-    int size = 25, counter, step = 2, * base, round = 1;
+    int size, counter, step = 2, * base, round = 1;
+
+    printf("Enter size: ");
+    scanf("%d", &size);
 
     base = malloc(sizeof(int) * size);
 
@@ -55,15 +58,18 @@ int main()
     for(counter = 0; counter < size; counter++)
         *(base + counter) = counter + 1;
     
-    printMemory(base, size);
-
-    for(int round = 1; round <= 3; round++)
+    int keepGoing = 1;
+    while(keepGoing)
     {
         mark(base, size, step);
+        int prevSize = size;
         size = removeMarked(base, size);
-        printMemory(base, size);
         step = *(base + round);
+        round ++;
+        keepGoing = size != prevSize;
     }
 
+    printMemory(base, size);
+    
     return 0;
 }
