@@ -1,3 +1,6 @@
+/* Will Engel
+ * I wrote util.c so that common functions could be used by all of the programs in this project */
+
 /* Goes through the memory byte by byte, printing each byte in hex format */
 void printMemory(char * base, int size)
 {
@@ -113,8 +116,7 @@ void readLinesFromFile(char * loc, char *** callerLines, int * callerSize)
             }
 
             /* Refines the current line's memory space. */
-            currLine = realloc(currLine, (lineCharCount + 1) * sizeof(char));
-            currLine[lineCharCount] = '\0';
+            currLine = realloc(currLine, lineCharCount * sizeof(char));
 
             /* Adds currLine to the end of the 2d array */
             if(lineCharCount > 0)

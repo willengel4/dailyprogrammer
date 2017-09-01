@@ -1,4 +1,5 @@
-/* PROGRAM DESCRIPTION
+/* Will Engel 
+ * PROGRAM DESCRIPTION
  * Uses a sieve approach to complete challenge r/dailyprogrammer challenge #329
  * Essentially, there is an initial list up to a certain number n
  * EG. 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
