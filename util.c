@@ -1,3 +1,4 @@
+/* Goes through the memory byte by byte, printing each byte in hex format */
 void printMemory(char * base, int size)
 {
     printf("Printing memory\n");
@@ -5,6 +6,7 @@ void printMemory(char * base, int size)
         printf("%d\t%p\t0x%02x\n", i, (base + i), *(base + i));
 }
 
+/* Writes str to loc */
 int writeToFile(char * str, char * loc)
 {
     /* Create the file pointer */
@@ -36,12 +38,10 @@ char * readFromFile(char * loc)
         {
             bufferSize *= 2;
             content = realloc(content, bufferSize * sizeof(char));
-            printf("Just doubled buffer size\n");
         }
 
         /* Copy the character into the buffer */
         content[count] = c;
-        printf("Just read a character: %c\n", c);
     }
 
     /* Closes the file */
