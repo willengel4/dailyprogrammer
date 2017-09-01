@@ -63,7 +63,7 @@ int main()
         keepGoing = size != prevSize;
     }
 
-    printMemory(base, size);
+    printMemory(base, size * sizeof(int));
     
     return 0;
 }
