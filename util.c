@@ -55,3 +55,88 @@ char * readFromFile(char * loc)
     /* Returns the content */
     return content;
 }
+
+/* At the end, callerLines and callerSize will have the lines and size of the file
+ * 2 dimensional */
+void readLinesFromFile(char * loc, char *** callerLines, int * callerSize)
+{
+    /* Initializes the 2d array that will eventually hold every line */
+    char ** lines = malloc(sizeof(char*));
+
+    /* This char * will be used to build each individual line */
+    char * currLine = malloc(sizeof(char));
+
+    /* The file pointer */
+    FILE * file = fopen(loc, "r");
+
+    /* Integers that will help control the process */
+    int c, numLines = 0, linesBufferSize = 1, lineCharCount = 0, lineCharBufferSize = 1, reachedEnd = 0;
+
+    /* Until the end is reached.. */
+    while(!reachedEnd)
+    {
+        /* Grab the character */
+        c = fgetc(file);
+
+        /* If the character isn't a new line or end of file
+         * It needs to be added to the currline memory space
+         * If the currline memory space is too small, makes room */
+        if(c != '\n' && c != EOF)
+        {
+            /* Creates memory if needed
+             * "Doubling" dynamic memory approach. Will be resized later */
+            if(lineCharCount >= lineCharBufferSize)
+            {
+                lineCharBufferSize *= 2;
+                currLine = realloc(currLine, lineCharBufferSize * sizeof(char));
+            }
+
+            /* Put the character in the next memory space */
+            currLine[lineCharCount++] = c;
+        }
+
+        /* If the character is a new line or end of file character
+         * The lines 2d array needs to point at it.
+         * If the lines 2d array needs more space, it makes room.
+         * Also, the currline's memory space is refined to only what it needs.
+         * After the address of the first memory space in currline is referenced by lines, 
+         * currLine begins to point at a new memory space.
+         * The integer process parameters are reset */
+        else
+        {
+            /* Makes space in the 2d array for the next line
+             * "Doubling" approach */
+            if(numLines >= linesBufferSize)
+            {
+                linesBufferSize *= 2;
+                lines = realloc(lines, linesBufferSize * sizeof(char*));
+            }
+
+            /* Refines the current line's memory space. */
+            currLine = realloc(currLine, (lineCharCount + 1) * sizeof(char));
+            currLine[lineCharCount] = '\0';
+
+            /* Adds currLine to the end of the 2d array */
+            if(lineCharCount > 0)
+                lines[numLines++] = currLine;
+                
+            /* Reset currline and the integer process parameters */
+            currLine = malloc(sizeof(char));
+            lineCharBufferSize = 1;
+            lineCharCount = 0;
+        }
+
+        /* Check if the end has been reached */
+        reachedEnd = c == EOF;
+    }
+
+    /* Refines the 2d arrays space to only what it needs */
+    lines = realloc(lines, numLines * sizeof(char*));
+
+    /* Make the caller point at the lines and numlines */
+    *callerLines = lines;
+    *callerSize = numLines;
+
+    /* Closes the file */
+    fclose(file);
+}
