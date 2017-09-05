@@ -42,9 +42,8 @@ void findMaxWordHorizontal(char ** dictionary, int dictionaryLength, char ** boa
      * word will be used to store the biggest word */
     char * temp;
     char * word;
-    strinit(&temp, width, '.');
-    strinit(&word, width, '.');
-    int maxWordSize = -1;
+    strinit(&temp, width, '\0');
+    strinit(&word, width, '\0');
  
     /* Move col accross the width of the board */
     for(int tempIndex = 0, col = 0; col < width; col++)
@@ -53,21 +52,22 @@ void findMaxWordHorizontal(char ** dictionary, int dictionaryLength, char ** boa
         
         /* When we reach a '.', that indicates the end of a block 
          * and the block actually contains characters */
-        if(board[row][col] == '.')
+        if(board[row][col] == '.' || col >= width - 1)
         {
+            if(col >= width - 1)
+                temp[tempIndex++] = board[row][col];
+            
             /* If temp is larger than word and temp is an actual english word
              * Replace word with temp */
-            if(tempIndex > maxWordSize && findWord(dictionary, temp, dictionaryLength))
+            if(strlen(temp) > strlen(word) && findWord(dictionary, temp, dictionaryLength))
             {
-                for(int i = 0; i < tempIndex; i++)
-                    word[i] = temp[i];
-
+                strcpy(word, temp);
                 *startCol = col - tempIndex;
-                maxWordSize = tempIndex;
-                printf("word=%s sc=%d max=%d ", word, *startCol, maxWordSize);
+                printf("word=%s sc=%d max=%lu ", word, *startCol, strlen(word));
             }
 
             /* Reset temp */
+            strclear(temp, width, '\0');
             tempIndex = 0;
         }
 
@@ -84,6 +84,7 @@ void findMaxWordHorizontal(char ** dictionary, int dictionaryLength, char ** boa
     /*  */
     free(temp);
     *maxWord = word;
+    printf("The max word that was found was %s\n", word);
 }
 
 int main()
@@ -100,7 +101,7 @@ int main()
     int dictionaryLength;
     readLinesFromFile("resources/dictionary.txt", &dictionary, &dictionaryLength);
 
-    int testRow = 4;
+    int testRow = 2;
     char * maxWord;
     int startCol;
     findMaxWordHorizontal(dictionary, dictionaryLength, board, testRow, width, &maxWord, &startCol);

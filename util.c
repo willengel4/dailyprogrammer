@@ -28,17 +28,10 @@ void strinit(char ** str, int length, char placeHolder)
 }
 
 /* Clears the contents of the string */
-void strclear(char ** str, int length, char clearTo)
-{
-    printMemory(*str, length);        
-    
+void strclear(char * str, int length, char clearTo)
+{    
     for(int i = 0; i < length; i++)
-    {
-        *str[i] = clearTo;        
-    }
-
-    printMemory(*str, length);        
-    
+        str[i] = clearTo;
 }
 
 /* Writes str to loc */
