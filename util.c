@@ -9,6 +9,38 @@ void printMemory(char * base, int size)
         printf("%d\t%p\t0x%02x\n", i, (base + i), *(base + i));
 }
 
+/* Creates a string of specified length with the placeholder char replicated throughout
+ * the string. It will insert a null byte at the end */
+void strinit(char ** str, int length, char placeHolder)
+{
+    /* Allocate space for the string */
+    char * mem = malloc(sizeof(char) * (length + 1));
+
+    /* Copy the placeholder char into each position in the string */
+    for(int i = 0; i < length; i++)
+        mem[i] = placeHolder;
+    
+    /* Insert the null byte at the end */
+    mem[length] = '\0';
+
+    /* Point str at the memory space */
+    *str = mem;
+}
+
+/* Clears the contents of the string */
+void strclear(char ** str, int length, char clearTo)
+{
+    printMemory(*str, length);        
+    
+    for(int i = 0; i < length; i++)
+    {
+        *str[i] = clearTo;        
+    }
+
+    printMemory(*str, length);        
+    
+}
+
 /* Writes str to loc */
 int writeToFile(char * str, char * loc)
 {
@@ -57,6 +89,33 @@ char * readFromFile(char * loc)
 
     /* Returns the content */
     return content;
+}
+
+/* Returns the index of word in words
+ * if word doesn't exist returns -1
+ * Uses binary search so words must be sorted */
+int findWord(char ** words, char * word, int length)
+{
+    int min = 0, max = length - 1, mid, dne = 0;
+
+    while(!dne)
+    {
+        mid = min + ((max - min) / 2);
+        
+        int x = strcmp(words[mid], word);
+
+        if(x < 0)
+            min = mid + 1;
+        else if(x == 0)
+            return mid;
+        else
+            max = mid - 1;
+
+        if (max < min)
+            dne = 1;
+    }
+
+    return -1;
 }
 
 /* At the end, callerLines and callerSize will have the lines and size of the file
@@ -116,7 +175,8 @@ void readLinesFromFile(char * loc, char *** callerLines, int * callerSize)
             }
 
             /* Refines the current line's memory space. */
-            currLine = realloc(currLine, lineCharCount * sizeof(char));
+            currLine = realloc(currLine, (lineCharCount + 1) * sizeof(char));
+            currLine[lineCharCount] = '\0';
 
             /* Adds currLine to the end of the 2d array */
             if(lineCharCount > 0)
