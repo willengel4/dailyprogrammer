@@ -1,6 +1,8 @@
 /* Will Engel
  * I wrote util.c so that common functions could be used by all of the programs in this project */
 
+#define LOG_UTIL 1
+
 /* Goes through the memory byte by byte, printing each byte in hex format */
 void printMemory(char * base, int size)
 {
@@ -13,6 +15,9 @@ void printMemory(char * base, int size)
  * the string. It will insert a null byte at the end */
 void strinit(char ** str, int length, char placeHolder)
 {
+    if(LOG_UTIL)
+        printf("Creating a string of length %d -> ", length);
+
     /* Allocate space for the string */
     char * mem = malloc(sizeof(char) * (length + 1));
 
@@ -23,25 +28,57 @@ void strinit(char ** str, int length, char placeHolder)
     /* Insert the null byte at the end */
     mem[length] = '\0';
 
+    if(LOG_UTIL)
+        printf("Created string: %s", mem);
+
     /* Point str at the memory space */
     *str = mem;
 }
 
+/* reverses a string */
+void streverse(char * str)
+{
+    if(LOG_UTIL)
+        printf("Reversing string %s -> ", str);
+
+    int length = strlen(str);
+
+    for(int i = 0; i < length / 2; i++)
+    {
+        char temp = str[i];
+        str[i] = str[length - 1 - i];
+        str[length - 1 - i] = temp;
+    }
+
+    if(LOG_UTIL)
+        printf("Reversed string: %s\n", str);
+}
+
 /* Clears the contents of the string */
 void strclear(char * str, int length, char clearTo)
-{    
+{
+    if(LOG_UTIL)
+        printf("Clearing string %s -> ", str);
     for(int i = 0; i < length; i++)
         str[i] = clearTo;
+    if(LOG_UTIL)
+        printf("String cleared: %s", str);
 }
 
 /* Writes str to loc */
 int writeToFile(char * str, char * loc)
 {
+    if(LOG_UTIL)
+        printf("Writing string to %s -> ", loc);
+
     /* Create the file pointer */
     FILE * file = fopen(loc, "w");
     
     /* Copy the string into the file */
     int result = fputs(str, file);
+
+    if(LOG_UTIL)
+        printf("Result: %d\n", result);
 
     /* Close the file */
     fclose(file);
@@ -89,13 +126,25 @@ char * readFromFile(char * loc)
  * Uses binary search so words must be sorted */
 int findWord(char ** words, char * word, int length)
 {
+    if(LOG_UTIL) 
+        printf("searching for %s\n", word);
+
     int min = 0, max = length - 1, mid, dne = 0;
 
     while(!dne)
     {
         mid = min + ((max - min) / 2);
-        
         int x = strcmp(words[mid], word);
+
+        if(LOG_UTIL) 
+            printf("%d %d %d [", min, max, mid);
+
+        if(LOG_UTIL)
+        {
+            for(int i = 0; i < strlen(words[mid]); i++)
+                printf("%c ", words[mid][i]);
+            printf("] %d\n", x);
+        }
 
         if(x < 0)
             min = mid + 1;
@@ -136,7 +185,7 @@ void readLinesFromFile(char * loc, char *** callerLines, int * callerSize)
         /* If the character isn't a new line or end of file
          * It needs to be added to the currline memory space
          * If the currline memory space is too small, makes room */
-        if(c != '\n' && c != EOF)
+        if(c != '\n' && c != '\r' && c != EOF)
         {
             /* Creates memory if needed
              * "Doubling" dynamic memory approach. Will be resized later */

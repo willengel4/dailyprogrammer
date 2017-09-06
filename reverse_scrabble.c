@@ -59,11 +59,20 @@ void findMaxWordHorizontal(char ** dictionary, int dictionaryLength, char ** boa
             
             /* If temp is larger than word and temp is an actual english word
              * Replace word with temp */
-            if(strlen(temp) > strlen(word) && findWord(dictionary, temp, dictionaryLength))
+            if(strlen(temp) > strlen(word))
             {
-                strcpy(word, temp);
-                *startCol = col - tempIndex;
-                printf("word=%s sc=%d max=%lu ", word, *startCol, strlen(word));
+                int nrdi = findWord(dictionary, temp, dictionaryLength);
+                streverse(temp);
+                int rdi = findWord(dictionary, temp, dictionaryLength);
+                
+                printf("%s nrdi=%d rdi=%d", temp, nrdi, rdi);
+
+                if(nrdi != -1 || rdi != -1)
+                {
+                    strcpy(word, temp);
+                    *startCol = col - tempIndex;
+                    printf("word=%s sc=%d max=%lu ", word, *startCol, strlen(word));
+                }
             }
 
             /* Reset temp */
@@ -155,12 +164,8 @@ int main()
     int dictionaryLength;
     readLinesFromFile("resources/dictionary.txt", &dictionary, &dictionaryLength);
 
-    int testRow = 2;
+    int testRow = 4;
     char * maxWord;
     int startCol;
     findMaxWordHorizontal(dictionary, dictionaryLength, board, testRow, width, &maxWord, &startCol);
-
-    int testCol = 2;
-    int startRow;
-    findMaxWordVertical(dictionary, dictionaryLength, board, testCol, width, &maxWord, &startRow);
 }
