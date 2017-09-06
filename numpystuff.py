@@ -6,7 +6,6 @@ import sys
 """ Gets the output image file name """
 outFileName = sys.argv[sys.argv.index('-o') + 1] + '.png'
 
-""" dicks """
 numArrays = 5
 nums = 1000
 
