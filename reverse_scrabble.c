@@ -8,25 +8,27 @@
 #include <string.h>
 #include "util.c"
 
+#define LOG 1
+
 struct block
 {
-    char * word;
+    char *word;
     int x1, y1, x2, y2;
 };
 
 //-----------------For Debugging------------------------------------------
-void printBlock(struct block * b)
+void printBlock(struct block *b)
 {
-    printf("Block: %s\nLoc: (%d, %d)---(%d, %d)\n", b->word, b->x1, b->y1, b->x2, b->y2);    
+    printf("Block: %s\nLoc: (%d, %d)---(%d, %d)\n", b->word, b->x1, b->y1, b->x2, b->y2);
 }
 
-void printBoard(char ** board, int width, int height)
+void printBoard(char **board, int width, int height)
 {
-    for(int i = 0; i < height; i++)
+    for (int i = 0; i < height; i++)
     {
-        for(int f = 0; f < width; f++)
+        for (int f = 0; f < width; f++)
         {
-            printf("%c", board[i][f]);            
+            printf("%c", board[i][f]);
         }
         printf("\n");
     }
@@ -34,49 +36,79 @@ void printBoard(char ** board, int width, int height)
 //----------------------------------------------------------------------------
 
 /* Finds the largest word, searching horizontally in the specified row */
-void findMaxWordHorizontal(char ** dictionary, int dictionaryLength, char ** board, int row, int width, char ** maxWord, int * startCol)
+void findMaxWord(char **dictionary, int dictionaryLength, char **board,
+                 int initRow, int initCol, int rowIncr, int colIncr, int width, int height, char **maxWord, int *startCol, int *startRow)
 {
-    printf("finding max word horizontal at row %d\n", row);
+    if (LOG)
+        printf("finding max word with ir=%d ic=%d ri=%d ci=%d\n", initRow, initCol, rowIncr, colIncr);
 
     /* temp will be used to build each block
      * word will be used to store the biggest word */
-    char * temp;
-    char * word;
-    strinit(&temp, width, '\0');
-    strinit(&word, width, '\0');
- 
+    int blockSize = (width * colIncr) + (height * rowIncr);
+    char *temp;
+    char *word = *maxWord;
+    strinit(&temp, blockSize, '\0');
+
     /* Move col accross the width of the board */
-    for(int tempIndex = 0, col = 0; col < width; col++)
+    for (int tempIndex = 0, row = initRow, col = initCol;
+         col < width && row < height;
+         col += colIncr, row += rowIncr)
     {
-        printf("ti=%d col=%d c=%c ", tempIndex, col, board[row][col]);
-        
+        if (LOG)
+            printf("ti=%d col=%d row=%d c=%c ", tempIndex, col, row, board[row][col]);
+
         /* When we reach a '.', that indicates the end of a block 
          * and the block actually contains characters */
-        if(board[row][col] == '.' || col >= width - 1)
+        if (board[row][col] == '.' || (colIncr && col >= width - 1) || (rowIncr && row >= height - 1))
         {
-            if(col >= width - 1)
+            if (board[row][col] != '.' && ((colIncr && col >= width - 1) || (rowIncr && row >= height - 1)))
                 temp[tempIndex++] = board[row][col];
-            
+
             /* If temp is larger than word and temp is an actual english word
              * Replace word with temp */
-            if(strlen(temp) > strlen(word))
+            if (strlen(temp) > strlen(word))
             {
-                int nrdi = findWord(dictionary, temp, dictionaryLength);
-                streverse(temp);
-                int rdi = findWord(dictionary, temp, dictionaryLength);
-                
-                printf("%s nrdi=%d rdi=%d", temp, nrdi, rdi);
+                int rdi = -1, nrdi = findWord(dictionary, temp, dictionaryLength);
 
-                if(nrdi != -1 || rdi != -1)
+                if (nrdi == -1)
+                {
+                    streverse(temp);
+                    rdi = findWord(dictionary, temp, dictionaryLength);
+                }
+
+                if (LOG)
+                    printf("%s nrdi=%d rdi=%d ", temp, nrdi, rdi);
+
+                if (nrdi != -1 || rdi != -1)
                 {
                     strcpy(word, temp);
-                    *startCol = col - tempIndex;
-                    printf("word=%s sc=%d max=%lu ", word, *startCol, strlen(word));
+
+                    if (board[row][col] != '.' && ((colIncr && col >= width - 1) || (rowIncr && row >= height - 1)))
+                    {
+                        *startCol = col;
+                        *startRow = row; 
+                    }
+                    else
+                    {
+                        if(colIncr == 1)
+                        {
+                            *startCol = col - 1;
+                            *startRow = row;                            
+                        }
+                        else
+                        {
+                            *startCol = col;
+                            *startRow = row - 1;  
+                        }
+                    }
+
+                    if (LOG)
+                        printf("word=%s sc=%d sr=%d max=%lu ", word, *startCol, *startRow, strlen(word));
                 }
             }
 
             /* Reset temp */
-            strclear(temp, width, '\0');
+            strclear(temp, blockSize, '\0');
             tempIndex = 0;
         }
 
@@ -84,88 +116,92 @@ void findMaxWordHorizontal(char ** dictionary, int dictionaryLength, char ** boa
         else
         {
             temp[tempIndex++] = board[row][col];
-            printf("temp=%s ", temp);            
+
+            if (LOG)
+                printf("temp=%s ", temp);
         }
 
-        printf("\n");
+        if (LOG)
+            printf("\n");
     }
 
-    /*  */
     free(temp);
-    *maxWord = word;
-    printf("The max word that was found was %s\n", word);
 }
 
-/* Finds the largest word, searching vertically in the specified column */
-void findMaxWordVertical(char ** dictionary, int dictionaryLength, char ** board, int col, int height, char ** maxWord, int * startRow)
+void searchAndDestroy(char **dictionary, int dictionaryLength, char **board, int width, int height)
 {
-    printf("finding max word horizontal at row %d\n", col);
+    /* maxWord will store the largest word on the board */
+    char *maxWord, *maxVertical;
+    strinit(&maxWord, height, '\0');
+    int startCol, startRow, maxWordIsVertical, maxWordSize, colDecr, rowDecr;
 
-    /* temp will be used to build each block
-     * word will be used to store the biggest word */
-    char * temp;
-    char * word;
-    strinit(&temp, height, '\0');
-    strinit(&word, height, '\0');
- 
-    /* Move row accross the height of the board */
-    for(int tempIndex = 0, row = 0; row < height; row++)
+    /* Finds the max word searching horizontally */
+    for (int i = 0; i < width; i++)
+        findMaxWord(dictionary, dictionaryLength, board, 0, i, 1, 0, width, height, &maxWord, &startCol, &startRow);
+
+    /* Stores the horizontally searched max word in maxVertical */
+    strcpy(maxVertical, maxWord);
+
+    /* Finds the max word searching vertically */
+    for (int i = 0; i < height; i++)
+        findMaxWord(dictionary, dictionaryLength, board, i, 0, 0, 1, width, height, &maxWord, &startCol, &startRow);
+
+    /* Determine if the max word was found in the horizontal or vertical direction */
+    maxWordIsVertical = !strcmp(maxVertical, maxWord);
+    maxWordSize = strlen(maxWord);
+    colDecr = !maxWordIsVertical;
+    rowDecr = maxWordIsVertical;
+
+    if (LOG)
     {
-        printf("ti=%d row=%d c=%c ", tempIndex, row, board[row][col]);
-        
-        /* When we reach a '.', that indicates the end of a block 
-         * and the block actually contains characters */
-        if(board[row][col] == '.' || row >= height - 1)
-        {
-            if(row >= height - 1)
-                temp[tempIndex++] = board[row][col];
-            
-            /* If temp is larger than word and temp is an actual english word
-             * Replace word with temp */
-            if(strlen(temp) > strlen(word) && findWord(dictionary, temp, dictionaryLength))
-            {
-                strcpy(word, temp);
-                *startRow = row - tempIndex;
-                printf("word=%s sr=%d max=%lu ", word, *startRow, strlen(word));
-            }
-
-            /* Reset temp */
-            strclear(temp, height, '\0');
-            tempIndex = 0;
-        }
-
-        /* If the current character isn't an empty piece, add it to temp */
-        else
-        {
-            temp[tempIndex++] = board[row][col];
-            printf("temp=%s ", temp);            
-        }
-
-        printf("\n");
+        printf("Max word: %s length=%d\nr=%d c=%d\nMaxVertical: %s\nmaxWordIsVertical: %d\n", maxWord, maxWordSize, startRow, startCol, maxVertical, maxWordIsVertical);
+        printMemory(maxWord, strlen(maxWord) + 1);
+        printMemory(maxVertical, strlen(maxVertical) + 1);
     }
 
-    /*  */
-    free(temp);
-    *maxWord = word;
-    printf("The max word that was found was %s\n", word);
+    for (int i = 0, r = startRow, c = startCol; i < maxWordSize; i++, c -= colDecr, r -= rowDecr)
+    {
+        int sidesEmpty = ((c + 1 >= width || board[r][c + 1] == '.') && (c - 1 < 0 || board[r][c - 1] == '.'));
+        int tbEmpty = ((r + 1 >= height || board[r + 1][c] == '.') && (r - 1 < 0 || board[r - 1][c] == '.'));
+        
+        if(LOG)
+            printf("i=%d r=%d c=%d s.e=%d tb.e=%d", i, r, c, sidesEmpty, tbEmpty);
+
+        if ((maxWordIsVertical && sidesEmpty) || (!maxWordIsVertical && tbEmpty))
+        {
+            if(LOG)
+                printf(" Removing %c at (%d, %d)", board[r][c], r, c);
+
+            board[r][c] = '.';
+        }
+
+        if(LOG)
+            printf("\n");
+    }
+
+    printBoard(board, width, height);
 }
+
 
 int main()
 {
     /* Load the scrabble board, width, and height */
-    char ** board;
+    char **board;
     int width, height;
     readLinesFromFile("resources/scrabble_board.txt", &board, &height);
     width = strlen(board[0]);
     printBoard(board, width, height);
-    
+
     /* Load the dictionary */
-    char ** dictionary;
+    char **dictionary;
     int dictionaryLength;
     readLinesFromFile("resources/dictionary.txt", &dictionary, &dictionaryLength);
 
-    int testRow = 4;
-    char * maxWord;
-    int startCol;
-    findMaxWordHorizontal(dictionary, dictionaryLength, board, testRow, width, &maxWord, &startCol);
+    searchAndDestroy(dictionary, dictionaryLength, board, width, height);
+    searchAndDestroy(dictionary, dictionaryLength, board, width, height);
+    searchAndDestroy(dictionary, dictionaryLength, board, width, height);
+    searchAndDestroy(dictionary, dictionaryLength, board, width, height);
+    searchAndDestroy(dictionary, dictionaryLength, board, width, height);
+    searchAndDestroy(dictionary, dictionaryLength, board, width, height);
+    searchAndDestroy(dictionary, dictionaryLength, board, width, height);
 }
