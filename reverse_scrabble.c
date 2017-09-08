@@ -24,6 +24,7 @@ void printBlock(struct block *b)
 
 void printBoard(char **board, int width, int height)
 {
+    printf("Printing the board...\n");
     for (int i = 0; i < height; i++)
     {
         for (int f = 0; f < width; f++)
@@ -39,9 +40,6 @@ void printBoard(char **board, int width, int height)
 void findMaxWord(char **dictionary, int dictionaryLength, char **board,
                  int initRow, int initCol, int rowIncr, int colIncr, int width, int height, char **maxWord, int *startCol, int *startRow)
 {
-    if (LOG)
-        printf("finding max word with ir=%d ic=%d ri=%d ci=%d\n", initRow, initCol, rowIncr, colIncr);
-
     /* temp will be used to build each block
      * word will be used to store the biggest word */
     int blockSize = (width * colIncr) + (height * rowIncr);
@@ -54,9 +52,6 @@ void findMaxWord(char **dictionary, int dictionaryLength, char **board,
          col < width && row < height;
          col += colIncr, row += rowIncr)
     {
-        if (LOG)
-            printf("ti=%d col=%d row=%d c=%c ", tempIndex, col, row, board[row][col]);
-
         /* When we reach a '.', that indicates the end of a block 
          * and the block actually contains characters */
         if (board[row][col] == '.' || (colIncr && col >= width - 1) || (rowIncr && row >= height - 1))
@@ -75,9 +70,6 @@ void findMaxWord(char **dictionary, int dictionaryLength, char **board,
                     streverse(temp);
                     rdi = findWord(dictionary, temp, dictionaryLength);
                 }
-
-                if (LOG)
-                    printf("%s nrdi=%d rdi=%d ", temp, nrdi, rdi);
 
                 if (nrdi != -1 || rdi != -1)
                 {
@@ -101,9 +93,6 @@ void findMaxWord(char **dictionary, int dictionaryLength, char **board,
                             *startRow = row - 1;  
                         }
                     }
-
-                    if (LOG)
-                        printf("word=%s sc=%d sr=%d max=%lu ", word, *startCol, *startRow, strlen(word));
                 }
             }
 
@@ -116,19 +105,12 @@ void findMaxWord(char **dictionary, int dictionaryLength, char **board,
         else
         {
             temp[tempIndex++] = board[row][col];
-
-            if (LOG)
-                printf("temp=%s ", temp);
         }
-
-        if (LOG)
-            printf("\n");
     }
 
-    free(temp);
 }
 
-void searchAndDestroy(char **dictionary, int dictionaryLength, char **board, int width, int height)
+void searchAndDestroy(char **dictionary, int dictionaryLength, char **board, int width, int height, struct block * currBlock)
 {
     /* maxWord will store the largest word on the board */
     char *maxWord, *maxVertical;
@@ -152,42 +134,48 @@ void searchAndDestroy(char **dictionary, int dictionaryLength, char **board, int
     colDecr = !maxWordIsVertical;
     rowDecr = maxWordIsVertical;
 
-    if (LOG)
-    {
-        printf("Max word: %s length=%d\nr=%d c=%d\nMaxVertical: %s\nmaxWordIsVertical: %d\n", maxWord, maxWordSize, startRow, startCol, maxVertical, maxWordIsVertical);
-        printMemory(maxWord, strlen(maxWord) + 1);
-        printMemory(maxVertical, strlen(maxVertical) + 1);
-    }
-
     for (int i = 0, r = startRow, c = startCol; i < maxWordSize; i++, c -= colDecr, r -= rowDecr)
     {
         int sidesEmpty = ((c + 1 >= width || board[r][c + 1] == '.') && (c - 1 < 0 || board[r][c - 1] == '.'));
         int tbEmpty = ((r + 1 >= height || board[r + 1][c] == '.') && (r - 1 < 0 || board[r - 1][c] == '.'));
-        
-        if(LOG)
-            printf("i=%d r=%d c=%d s.e=%d tb.e=%d", i, r, c, sidesEmpty, tbEmpty);
 
         if ((maxWordIsVertical && sidesEmpty) || (!maxWordIsVertical && tbEmpty))
-        {
-            if(LOG)
-                printf(" Removing %c at (%d, %d)", board[r][c], r, c);
-
             board[r][c] = '.';
-        }
-
-        if(LOG)
-            printf("\n");
     }
 
-    printBoard(board, width, height);
+    currBlock->word = maxWord;
+    currBlock->x1 = maxWordIsVertical ? startCol : startCol - (maxWordSize - 1);
+    currBlock->y1 = maxWordIsVertical ? startRow - (maxWordSize - 1) : startRow;
+    currBlock->x2 = startCol;
+    currBlock->y2 = startRow;
+
 }
 
+int touches(struct block * block1, struct block * block2)
+{
+    int x1Incr = (block1->x2 - block1->x1) / (strlen(block1->word) - 1);
+    int y1Incr = (block1->y2 - block1->y1) / (strlen(block1->word) - 1);
+    int x2Incr = (block2->x2 - block2->x1) / (strlen(block2->word) - 1);
+    int y2Incr = (block2->y2 - block2->y1) / (strlen(block2->word) - 1);
+    
+    //printf("%s %d %d\n%s %d %d\n", block1->word, x1Incr, y1Incr, block2->word, x2Incr, y2Incr);
+
+    for(int i = 0, x1 = block1->x1, y1 = block1->y1; i < strlen(block1->word); i++, x1 += x1Incr, y1 += y1Incr)
+    {
+        for(int f = 0, x2 = block2->x1, y2 = block2->y1; f < strlen(block2->word); f++, x2 += x2Incr, y2 += y2Incr)
+            if( abs(x1 - x2) + abs(y1 - y2) <= 1 )
+                return 1;
+    }
+
+
+    return 0;
+}
 
 int main()
 {
     /* Load the scrabble board, width, and height */
     char **board;
-    int width, height;
+    int width, height, numWords = 7;
     readLinesFromFile("resources/scrabble_board.txt", &board, &height);
     width = strlen(board[0]);
     printBoard(board, width, height);
@@ -197,11 +185,35 @@ int main()
     int dictionaryLength;
     readLinesFromFile("resources/dictionary.txt", &dictionary, &dictionaryLength);
 
-    searchAndDestroy(dictionary, dictionaryLength, board, width, height);
-    searchAndDestroy(dictionary, dictionaryLength, board, width, height);
-    searchAndDestroy(dictionary, dictionaryLength, board, width, height);
-    searchAndDestroy(dictionary, dictionaryLength, board, width, height);
-    searchAndDestroy(dictionary, dictionaryLength, board, width, height);
-    searchAndDestroy(dictionary, dictionaryLength, board, width, height);
-    searchAndDestroy(dictionary, dictionaryLength, board, width, height);
+    struct block * blocks = malloc(sizeof(struct block) * numWords);
+
+    for(int i = 0; i < numWords; i++)
+    {
+        searchAndDestroy(dictionary, dictionaryLength, board, width, height, &blocks[i]);
+    }
+
+    for(int i = 0; i < numWords; i++)
+    {
+        printf("%d. %s\n", i, blocks[i].word);
+    }
+
+    for(int i = 0; i < numWords; i++)
+    {
+        for(int f = 0; f < numWords; f++)
+        {
+            if(i != f)
+            {
+                printf("Does %s touch %s? ", blocks[i].word, blocks[f].word);
+                
+                if(touches( &blocks[i], &blocks[f] ))
+                {
+                    printf("yes\n");
+                }
+                else
+                {
+                    printf("no\n");
+                }
+            }
+        }
+    }
 }

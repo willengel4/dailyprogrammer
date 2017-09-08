@@ -1,7 +1,7 @@
 /* Will Engel
  * I wrote util.c so that common functions could be used by all of the programs in this project */
 
-#define LOG_UTIL 1
+#define LOG_UTIL 0
 
 /* Goes through the memory byte by byte, printing each byte in hex format */
 void printMemory(char * base, int size)
