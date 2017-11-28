@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as numpy
-import tkinter
+#import tkinter
 import sys
 
 """ Gets the output image file name """

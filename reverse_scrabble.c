@@ -8,33 +8,70 @@
 #include <string.h>
 #include "util.c"
 
-#define LOG 1
-
 struct block
 {
-    char *word;
-    int x1, y1, x2, y2;
+    char * word;
+    int x1, y1, x2, y2, queued;
+    struct block * next;
+    struct block * previous;
 };
 
-//-----------------For Debugging------------------------------------------
-void printBlock(struct block *b)
+void pushLast(struct block ** firstNode, struct block ** lastNode, struct block * newBlock)
 {
-    printf("Block: %s\nLoc: (%d, %d)---(%d, %d)\n", b->word, b->x1, b->y1, b->x2, b->y2);
+    if(*lastNode != NULL)
+    {
+        (*lastNode)->next = newBlock;
+        newBlock->previous = *lastNode;
+        *lastNode = newBlock;        
+    }
+    else
+    {
+        *lastNode = newBlock;
+        *firstNode = newBlock;
+    }
+
+    newBlock->queued = 1;
 }
 
-void printBoard(char **board, int width, int height)
+struct block * popLast(struct block ** firstNode, struct block ** lastNode)
 {
-    printf("Printing the board...\n");
-    for (int i = 0; i < height; i++)
+    struct block * prevLastNode = *lastNode;
+    struct block * previous = (*lastNode)->previous;
+
+    if(previous != NULL)
     {
-        for (int f = 0; f < width; f++)
-        {
-            printf("%c", board[i][f]);
-        }
-        printf("\n");
+        previous->next = NULL;
+        (*lastNode)->previous = NULL;
+        *lastNode = previous;
     }
+    else
+    {
+        *lastNode = NULL;
+        *firstNode = NULL;
+    }
+
+    return prevLastNode;
 }
-//----------------------------------------------------------------------------
+
+struct block * popFirst(struct block ** firstNode, struct block ** lastNode)
+{
+    struct block * prevFirstNode = *firstNode;
+    struct block * next = (*firstNode)->next;
+
+    if(next != NULL)
+    {
+        next->previous = NULL;
+        (*firstNode)->next = NULL;
+        *firstNode = next;
+    }
+    else
+    {
+        *firstNode = NULL;
+        *lastNode = NULL;
+    }
+
+    return prevFirstNode;
+}
 
 /* Finds the largest word, searching horizontally in the specified row */
 void findMaxWord(char **dictionary, int dictionaryLength, char **board,
@@ -144,11 +181,11 @@ void searchAndDestroy(char **dictionary, int dictionaryLength, char **board, int
     }
 
     currBlock->word = maxWord;
+    currBlock->queued = 0;
     currBlock->x1 = maxWordIsVertical ? startCol : startCol - (maxWordSize - 1);
     currBlock->y1 = maxWordIsVertical ? startRow - (maxWordSize - 1) : startRow;
     currBlock->x2 = startCol;
     currBlock->y2 = startRow;
-
 }
 
 int touches(struct block * block1, struct block * block2)
@@ -158,8 +195,6 @@ int touches(struct block * block1, struct block * block2)
     int x2Incr = (block2->x2 - block2->x1) / (strlen(block2->word) - 1);
     int y2Incr = (block2->y2 - block2->y1) / (strlen(block2->word) - 1);
     
-    //printf("%s %d %d\n%s %d %d\n", block1->word, x1Incr, y1Incr, block2->word, x2Incr, y2Incr);
-
     for(int i = 0, x1 = block1->x1, y1 = block1->y1; i < strlen(block1->word); i++, x1 += x1Incr, y1 += y1Incr)
     {
         for(int f = 0, x2 = block2->x1, y2 = block2->y1; f < strlen(block2->word); f++, x2 += x2Incr, y2 += y2Incr)
@@ -167,18 +202,35 @@ int touches(struct block * block1, struct block * block2)
                 return 1;
     }
 
-
     return 0;
+}
+
+void search(struct block * centerBlock, struct block * blocks, int numBlocks)
+{
+    /* Uses a queuing breadth first search */
+    struct block * firstNode = NULL;
+    struct block * lastNode = NULL;
+
+    pushLast(&firstNode, &lastNode, centerBlock);
+    
+    while(firstNode != NULL)
+    {
+        struct block * currNode = popFirst(&firstNode, &lastNode);
+        
+        /* Find unvisited nodes that touch currNode */
+        for(int i = 0; i < numBlocks; i++)
+            if(!(blocks[i].queued) && touches(currNode, &(blocks[i])))
+                pushLast(&firstNode, &lastNode, &(blocks[i]));
+    }
 }
 
 int main()
 {
     /* Load the scrabble board, width, and height */
     char **board;
-    int width, height, numWords = 7;
+    int width, height, numWords = 7, centerX = 4, centerY = 4;
     readLinesFromFile("resources/scrabble_board.txt", &board, &height);
     width = strlen(board[0]);
-    printBoard(board, width, height);
 
     /* Load the dictionary */
     char **dictionary;
@@ -192,28 +244,9 @@ int main()
         searchAndDestroy(dictionary, dictionaryLength, board, width, height, &blocks[i]);
     }
 
-    for(int i = 0; i < numWords; i++)
-    {
-        printf("%d. %s\n", i, blocks[i].word);
-    }
+    struct block * centerBlock = &(blocks[6]);
 
-    for(int i = 0; i < numWords; i++)
-    {
-        for(int f = 0; f < numWords; f++)
-        {
-            if(i != f)
-            {
-                printf("Does %s touch %s? ", blocks[i].word, blocks[f].word);
-                
-                if(touches( &blocks[i], &blocks[f] ))
-                {
-                    printf("yes\n");
-                }
-                else
-                {
-                    printf("no\n");
-                }
-            }
-        }
-    }
+    search(centerBlock, blocks, numWords);
+
+    return 0;
 }
